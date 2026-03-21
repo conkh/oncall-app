@@ -12,10 +12,12 @@ export interface WeeklySchedule {
   weekIndex: number;
   primary: string | null;
   secondary: string | null;
+  supervisor: string | null;
 }
 
 export function generateSchedule(
   workers: Worker[],
+  supervisors: Worker[],
   numOfMonths: number,
   timeOff: TimeOffRequest[]
 ): WeeklySchedule[] {
@@ -24,10 +26,14 @@ export function generateSchedule(
 
   const primaryCount: Record<string, number> = {};
   const totalCount: Record<string, number> = {};
+  const supervisorCount: Record<string, number> = {};
 
   for (const w of workers) {
     primaryCount[w.id] = 0;
     totalCount[w.id] = 0;
+  }
+  for (const s of supervisors) {
+    supervisorCount[s.id] = 0;
   }
 
   for (let w = 0; w < weeks; w++) {
@@ -91,10 +97,26 @@ export function generateSchedule(
       totalCount[secondary]++;
     }
 
+    const supervisorLastWeek = w > 0 ? schedule[w - 1].supervisor : null;
+    const supervisorCandidates = supervisors.filter(
+      (supervisor) =>
+        !offThisWeek.has(supervisor.id) && supervisor.id !== supervisorLastWeek
+    );
+    supervisorCandidates.sort(
+      (a, b) => supervisorCount[a.id] - supervisorCount[b.id]
+    );
+
+    const supervisor =
+      supervisorCandidates.length > 0 ? supervisorCandidates[0].id : null;
+    if (supervisor) {
+      supervisorCount[supervisor]++;
+    }
+
     schedule.push({
       weekIndex: w,
       primary,
       secondary,
+      supervisor,
     });
   }
 

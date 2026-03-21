@@ -2,14 +2,15 @@
 
 import { useState, useMemo } from "react";
 import { generateSchedule, Worker, TimeOffRequest } from "@/lib/scheduler";
-import { Plus, Trash2, CalendarOff, Users, Calendar, AlertCircle } from "lucide-react";
+import {
+  Users, Shield, Settings, Search, Bell, LayoutGrid,
+  ArrowUpDown, Download, ChevronDown
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -19,299 +20,304 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+
+const Avatar = ({ name }: { name: string }) => {
+  const initials = getInitials(name);
+  const colors = ["bg-blue-100 text-blue-700", "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700", "bg-purple-100 text-purple-700", "bg-indigo-100 text-indigo-700"];
+  const col = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs shrink-0 ${col}`}>
+      {initials}
+    </div>
+  );
+};
+
 export default function Home() {
   const [workers, setWorkers] = useState<Worker[]>([
-    { id: "1", name: "Alice" },
-    { id: "2", name: "Bob" },
-    { id: "3", name: "Charlie" },
-    { id: "4", name: "Diana" },
-    { id: "5", name: "Edward" },
+    { id: "1", name: "Sarah Chen" },
+    { id: "2", name: "Mark Thompson" },
+    { id: "3", name: "Aisha Khan" },
+    { id: "4", name: "John Doe" },
+    { id: "5", name: "Chloe Bennet" },
+  ]);
+  const [supervisors, setSupervisors] = useState<Worker[]>([
+    { id: "s1", name: "David Lee" },
+    { id: "s2", name: "Maria Garcia" },
+    { id: "s3", name: "Alex Carter" },
   ]);
 
   const [months, setMonths] = useState<number>(3);
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().split("T")[0];
-  });
   const [timeOff, setTimeOff] = useState<TimeOffRequest[]>([]);
-  const [newWorkerName, setNewWorkerName] = useState("");
-
-  const getWeekDateRange = (weekIndex: number, startDateStr: string) => {
-    const [year, month, day] = startDateStr.split("-").map(Number);
-    const start = new Date(year, month - 1, day);
-    start.setDate(start.getDate() + weekIndex * 7);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    return `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} - ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
-  };
 
   const schedule = useMemo(
-    () => generateSchedule(workers, months, timeOff),
-    [workers, months, timeOff]
+    () => generateSchedule(workers, supervisors, months, timeOff),
+    [workers, supervisors, months, timeOff]
   );
-
-  const workerStats = useMemo(() => {
-    const stats: Record<string, { primary: number; secondary: number; total: number }> = {};
-    workers.forEach((w) => {
-      stats[w.id] = { primary: 0, secondary: 0, total: 0 };
-    });
-    schedule.forEach((week) => {
-      if (week.primary && stats[week.primary]) {
-        stats[week.primary].primary++;
-        stats[week.primary].total++;
-      }
-      if (week.secondary && stats[week.secondary]) {
-        stats[week.secondary].secondary++;
-        stats[week.secondary].total++;
-      }
-    });
-    return stats;
-  }, [schedule, workers]);
-
-  const addWorker = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newWorkerName.trim()) return;
-    setWorkers([
-      ...workers,
-      { id: Date.now().toString(), name: newWorkerName.trim() },
-    ]);
-    setNewWorkerName("");
-  };
-
-  const removeWorker = (id: string) => {
-    setWorkers(workers.filter((w) => w.id !== id));
-    setTimeOff(timeOff.filter((t) => t.workerId !== id));
-  };
 
   const toggleTimeOff = (workerId: string, weekIndex: number) => {
     const exists = timeOff.find(
       (t) => t.workerId === workerId && t.weekIndex === weekIndex
     );
     if (exists) {
-      setTimeOff(
-        timeOff.filter(
-          (t) => !(t.workerId === workerId && t.weekIndex === weekIndex)
-        )
-      );
+      setTimeOff(timeOff.filter((t) => !(t.workerId === workerId && t.weekIndex === weekIndex)));
     } else {
       setTimeOff([...timeOff, { workerId, weekIndex }]);
     }
   };
 
-  const getWorkerName = (id: string | null) => {
-    if (!id) return "Unassigned";
-    return workers.find((w) => w.id === id)?.name || "Unknown";
+  const getWorker = (id: string | null) => workers.find((w) => w.id === id);
+  const getSupervisor = (id: string | null) => supervisors.find((s) => s.id === id);
+
+  const getWeekDateRange = (weekIndex: number) => {
+    const start = new Date(2024, 6, 1);
+    start.setDate(start.getDate() + weekIndex * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.getDate()}`;
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50/50 text-neutral-900 p-8 font-sans transition-colors duration-300">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <header className="flex items-center justify-between pb-6 border-b">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-primary" />
-              On-Call Scheduler
-            </h1>
-            <p className="mt-2 text-muted-foreground font-medium">
-              Fair and constraint-based assignments.
-            </p>
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
+      {/* Top Navbar */}
+      <header className="h-16 bg-background border-b flex items-center justify-between px-6 shrink-0 z-10 hidden sm:flex">
+        <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+          <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+            <div className="w-2.5 h-2.5 bg-white rounded-full translate-x-0.5" />
           </div>
-        </header>
+          CallFlow
+        </div>
+        <div className="flex-1 max-w-xl mx-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search"
+              className="w-full bg-muted/50 border-muted-foreground/20 pl-10"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-5 text-muted-foreground">
+          <Button variant="ghost" size="icon"><LayoutGrid className="w-5 h-5" /></Button>
+          <div className="relative cursor-pointer">
+            <Button variant="ghost" size="icon"><Bell className="w-5 h-5" /></Button>
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-destructive rounded-full" />
+          </div>
+          <Avatar name="Admin User" />
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Controls Panel */}
-          <div className="space-y-6 lg:col-span-1">
-            <Card>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar Nav Rail */}
+        <div className="w-20 bg-background border-r hidden md:flex flex-col items-center py-6 gap-6 text-muted-foreground shrink-0">
+          <Button variant="ghost" className="flex flex-col items-center h-auto py-2 gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+            <Users className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Team</span>
+          </Button>
+          <Button variant="ghost" className="flex flex-col items-center h-auto py-2 gap-1 hover:text-foreground">
+            <Shield className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Supervisors</span>
+          </Button>
+          <Button variant="ghost" className="flex flex-col items-center h-auto py-2 gap-1 hover:text-foreground">
+            <Settings className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Settings</span>
+          </Button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 p-6 md:p-8 flex flex-col lg:flex-row items-start gap-8 overflow-auto">
+          {/* Left Cards */}
+          <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
+            <Card className="shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-indigo-500" /> Team Members
-                </CardTitle>
-                <CardDescription>Manage the engineering pool.</CardDescription>
+                <CardTitle className="text-lg">Team Members</CardTitle>
+                <CardDescription>{workers.length} members</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-4">
-                  {workers.map((worker) => {
-                    const stats =
-                      workerStats[worker.id] || { primary: 0, secondary: 0, total: 0 };
-                    return (
-                      <li
-                        key={worker.id}
-                        className="flex flex-col bg-muted/40 px-4 py-3 rounded-lg border gap-3 transition-colors hover:bg-muted/60"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-sm">
-                            {worker.name}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeWorker(worker.id)}
-                            className="text-muted-foreground hover:text-destructive h-7 w-7"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="flex gap-2 text-[11px] font-bold tracking-wide">
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                            1st: {stats.primary}
-                          </Badge>
-                          <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
-                            2nd: {stats.secondary}
-                          </Badge>
-                          <Badge variant="outline" className="ml-auto bg-background">
-                            Total: {stats.total}
+              <CardContent className="space-y-4">
+                <Button variant="outline" className="w-full">Manage Members</Button>
+                <div>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wider">Active/On-Call</h3>
+                  <div className="space-y-4">
+                    {workers.slice(0, 3).map((w, i) => (
+                      <div key={w.id} className="flex items-center gap-3">
+                        <Avatar name={w.name} />
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-semibold">{w.name}</span>
+                          <Badge variant="secondary" className={`mt-1 text-[10px] py-0 px-2 leading-tight ${i === 1 ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'}`}>
+                            {i === 1 ? 'Away/Amber - Member' : 'Active/Green - Team'}
                           </Badge>
                         </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                <form onSubmit={addWorker} className="flex gap-2">
-                  <Input
-                    value={newWorkerName}
-                    onChange={(e) => setNewWorkerName(e.target.value)}
-                    placeholder="New worker name"
-                    className="flex-1"
-                  />
-                  <Button type="submit" size="icon">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </form>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle>Settings</CardTitle>
-                <CardDescription>Configure the schedule length.</CardDescription>
+                <CardTitle className="text-lg">Supervisors</CardTitle>
+                <CardDescription>{supervisors.length} supervisors</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>Schedule Duration</Label>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {months} {months === 1 ? "Month" : "Months"} ({months * 4} weeks)
-                    </span>
+                <div>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider">Current Supervisors</h3>
+                  <div className="flex items-center gap-3">
+                    <Avatar name={supervisors[0]?.name || "Unassigned"} />
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold">{supervisors[0]?.name || "None"}</span>
+                      <Badge variant="secondary" className="mt-1 text-[10px] py-0 px-2 leading-tight bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
+                        On-Call/Indigo
+                      </Badge>
+                    </div>
                   </div>
-                  <Slider
-                    value={[months]}
-                    min={1}
-                    max={12}
-                    step={1}
-                    onValueChange={(vals) => setMonths(Array.isArray(vals) ? vals[0] : (vals as number))}
-                  />
                 </div>
+
+                <div>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider">Backup Supervisors</h3>
+                  <div className="flex items-center gap-3 mb-6">
+                    <Avatar name={supervisors[1]?.name || "Unassigned"} />
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-semibold">{supervisors[1]?.name || "None"}</span>
+                      <Badge variant="secondary" className="mt-1 text-[10px] py-0 px-2 leading-tight bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                        Active/Green
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="w-full">Manage Supervisors</Button>
               </CardContent>
             </Card>
 
-            <Card className="bg-amber-50 border-amber-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-amber-800 flex items-center gap-2 text-base">
-                  <AlertCircle className="w-5 h-5" /> Rules Active
-                </CardTitle>
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Settings</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-sm text-amber-900 space-y-1 mt-1 list-disc list-inside">
-                  <li>No consecutive primary shifts</li>
-                  <li>Max 2 consecutive shifts total</li>
-                  <li>Fair shift distribution</li>
-                  <li>Respects time-off requests</li>
-                </ul>
+                <div className="space-y-4 text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center gap-3 cursor-pointer hover:text-foreground transition"><Settings className="w-4 h-4" /> Configurations</div>
+                  <div className="flex items-center gap-3 cursor-pointer hover:text-foreground transition"><Bell className="w-4 h-4" /> Notifications</div>
+                  <div className="flex items-center gap-3 cursor-pointer hover:text-foreground transition"><LayoutGrid className="w-4 h-4" /> Integrations</div>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Schedule View Panel */}
-          <div className="lg:col-span-2">
-            <Card className="shadow-sm">
-              <CardHeader className="border-b bg-muted/20">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <CalendarOff className="w-5 h-5 text-emerald-500" />
-                  Generated Schedule
-                </CardTitle>
-                <CardDescription>
-                  Automatically balanced across {months * 4} weeks based on fair distribution parameters.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="uppercase text-xs tracking-wider">
-                      <TableHead className="w-[180px]">Date Range</TableHead>
-                      <TableHead>First On-Call</TableHead>
-                      <TableHead>Second On-Call</TableHead>
-                      <TableHead className="text-right">Time Off Manager</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {schedule.map((week) => {
-                      const weekTimeOff = timeOff.filter(
-                        (t) => t.weekIndex === week.weekIndex
-                      );
+          {/* Main Table Area */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <h1 className="text-2xl font-bold">Generated Schedule - July 2024</h1>
+              <div className="flex gap-3">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">New Schedule</Button>
+                <Button variant="outline"><Download className="w-4 h-4 mr-2" /> Export</Button>
+              </div>
+            </div>
 
-                      return (
-                        <TableRow key={week.weekIndex} className="group">
-                          <TableCell>
-                            <div className="font-bold whitespace-nowrap">
-                              {getWeekDateRange(week.weekIndex, startDate)}
+            <div className="mb-4 flex flex-col gap-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+              <div className="flex gap-3">
+                <Button variant="outline" size="sm" className="h-8 shadow-sm">
+                  Team <ChevronDown className="w-3 h-3 ml-2" />
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 shadow-sm">
+                  Period <ChevronDown className="w-3 h-3 ml-2" />
+                </Button>
+              </div>
+            </div>
+
+            <Card className="overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="w-[180px] font-bold">
+                      <div className="flex items-center gap-2">Date Range <ArrowUpDown className="w-3 h-3" /></div>
+                    </TableHead>
+                    <TableHead className="font-bold">First On-Call</TableHead>
+                    <TableHead className="font-bold">Second On-Call</TableHead>
+                    <TableHead className="font-bold">Supervisor</TableHead>
+                    <TableHead className="text-right font-bold">
+                      <div className="flex items-center justify-end gap-2">Time Off Manager <ArrowUpDown className="w-3 h-3" /></div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedule.slice(0, 4).map((week, idx) => {
+                    const pWorker = getWorker(week.primary);
+                    const sWorker = getWorker(week.secondary);
+                    const supervisor = getSupervisor(week.supervisor);
+
+                    let bg = "";
+                    if (idx === 0) bg = "bg-indigo-50/40 hover:bg-indigo-50/60";
+                    if (idx === 1) bg = "bg-slate-50/50 hover:bg-slate-50";
+                    if (idx === 2) bg = "bg-amber-50/40 hover:bg-amber-50/60";
+                    if (idx === 3) bg = "bg-slate-50/50 hover:bg-slate-50";
+
+                    return (
+                      <TableRow key={idx} className={bg}>
+                        <TableCell className="font-medium">
+                          {getWeekDateRange(idx)}
+                        </TableCell>
+                        <TableCell>
+                          {pWorker && (
+                            <div className="flex items-center gap-3">
+                              <Avatar name={pWorker.name} />
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="text-sm font-semibold leading-none">{pWorker.name}</span>
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-[10px] py-0 leading-tight">On-Call/Blue</Badge>
+                              </div>
                             </div>
-                            <div className="text-[10px] text-muted-foreground uppercase mt-1 font-semibold tracking-widest">
-                              Week {week.weekIndex + 1}
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {sWorker && (
+                            <div className="flex items-center gap-3">
+                              <Avatar name={sWorker.name} />
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="text-sm font-semibold leading-none">{sWorker.name}</span>
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-200 text-[10px] py-0 leading-tight">Backup/Amber</Badge>
+                              </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={week.primary ? "default" : "destructive"}
-                              className={week.primary ? "bg-blue-100 text-blue-800 hover:bg-blue-200" : ""}
-                            >
-                              {getWorkerName(week.primary)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={week.secondary ? "secondary" : "destructive"}
-                              className={week.secondary ? "bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-indigo-200" : ""}
-                            >
-                              {getWorkerName(week.secondary)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex flex-wrap gap-1.5 justify-end">
-                              {workers.map((worker) => {
-                                const isOff = weekTimeOff.some(
-                                  (t) => t.workerId === worker.id
-                                );
-                                return (
-                                  <Button
-                                    key={worker.id}
-                                    variant={isOff ? "destructive" : "outline"}
-                                    size="sm"
-                                    onClick={() => toggleTimeOff(worker.id, week.weekIndex)}
-                                    className={`h-7 px-2 text-[11px] ${
-                                      !isOff ? "text-muted-foreground hover:bg-muted" : "shadow-sm"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {supervisor && (
+                            <div className="flex items-center gap-3">
+                              <Avatar name={supervisor.name} />
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="text-sm font-semibold leading-none">{supervisor.name}</span>
+                                <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 text-[10px] py-0 leading-tight">On-Call/Indigo</Badge>
+                              </div>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-2 justify-end items-center py-2">
+                            {workers.concat(supervisors).map(person => {
+                              const isOff = timeOff.some(t => t.workerId === person.id && t.weekIndex === week.weekIndex);
+                              return (
+                                <button
+                                  key={person.id}
+                                  onClick={() => toggleTimeOff(person.id, week.weekIndex)}
+                                  title={`Toggle Time Off for ${person.name}`}
+                                  className={`rounded-full border-2 transition-transform hover:scale-110 flex shrink-0 ${isOff
+                                      ? "border-red-400 opacity-100 saturate-100"
+                                      : "border-transparent opacity-40 hover:opacity-100 grayscale hover:grayscale-0"
                                     }`}
-                                  >
-                                    {isOff ? "Off" : worker.name}
-                                  </Button>
-                                );
-                              })}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
+                                >
+                                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-700 overflow-hidden shrink-0">
+                                    {getInitials(person.name)}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </Card>
           </div>
         </div>
