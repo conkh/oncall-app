@@ -1,8 +1,23 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { generateSchedule, Worker, TimeOffRequest, getMonthName } from "@/lib/scheduler";
+import { generateSchedule, Worker, TimeOffRequest } from "@/lib/scheduler";
 import { Plus, Trash2, CalendarOff, Users, Calendar, AlertCircle } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function Home() {
   const [workers, setWorkers] = useState<Worker[]>([
@@ -16,20 +31,18 @@ export default function Home() {
   const [months, setMonths] = useState<number>(3);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
-    // Default to today as proper Start Date
     return d.toISOString().split("T")[0];
   });
   const [timeOff, setTimeOff] = useState<TimeOffRequest[]>([]);
   const [newWorkerName, setNewWorkerName] = useState("");
 
   const getWeekDateRange = (weekIndex: number, startDateStr: string) => {
-    // Treat the input string as a local date (e.g. "2026-03-21")
     const [year, month, day] = startDateStr.split("-").map(Number);
     const start = new Date(year, month - 1, day);
     start.setDate(start.getDate() + weekIndex * 7);
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
-    return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric'})} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'})}`;
+    return `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })} - ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
   };
 
   const schedule = useMemo(
@@ -39,10 +52,10 @@ export default function Home() {
 
   const workerStats = useMemo(() => {
     const stats: Record<string, { primary: number; secondary: number; total: number }> = {};
-    workers.forEach(w => {
+    workers.forEach((w) => {
       stats[w.id] = { primary: 0, secondary: 0, total: 0 };
     });
-    schedule.forEach(week => {
+    schedule.forEach((week) => {
       if (week.primary && stats[week.primary]) {
         stats[week.primary].primary++;
         stats[week.primary].total++;
@@ -91,213 +104,215 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 p-8 font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-neutral-50/50 text-neutral-900 p-8 font-sans transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-8">
-        <header className="flex items-center justify-between pb-6 border-b border-neutral-200">
+        <header className="flex items-center justify-between pb-6 border-b">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-blue-600" />
+            <h1 className="text-4xl font-extrabold tracking-tight flex items-center gap-3">
+              <Calendar className="w-8 h-8 text-primary" />
               On-Call Scheduler
             </h1>
-            <p className="mt-2 text-neutral-600 font-medium">
-              Fair and constraint-based assignments
+            <p className="mt-2 text-muted-foreground font-medium">
+              Fair and constraint-based assignments.
             </p>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Controls */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Controls Panel */}
           <div className="space-y-6 lg:col-span-1">
-            <section className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200">
-              <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-indigo-500" /> Workers
-              </h2>
-              <ul className="space-y-3 mb-4">
-                {workers.map((worker) => {
-                  const stats = workerStats[worker.id] || { primary: 0, secondary: 0, total: 0 };
-                  return (
-                    <li
-                      key={worker.id}
-                      className="flex flex-col bg-neutral-50 px-4 py-3 rounded-lg border border-neutral-100 gap-3 transition-all hover:border-neutral-200 hover:shadow-sm"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-neutral-800">
-                          {worker.name}
-                        </span>
-                        <button
-                          onClick={() => removeWorker(worker.id)}
-                          className="text-neutral-400 hover:text-red-500 transition-colors p-1"
-                          aria-label="Remove worker"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex gap-2 text-[11px] font-bold tracking-wide">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-200" title="First On-Call">
-                          1st: {stats.primary}
-                        </span>
-                        <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded border border-indigo-200" title="Second On-Call">
-                          2nd: {stats.secondary}
-                        </span>
-                        <span className="bg-neutral-200 text-neutral-800 px-2 py-1 rounded border border-neutral-300 ml-auto" title="Total Shifts">
-                          Total: {stats.total}
-                        </span>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-500" /> Team Members
+                </CardTitle>
+                <CardDescription>Manage the engineering pool.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-4">
+                  {workers.map((worker) => {
+                    const stats =
+                      workerStats[worker.id] || { primary: 0, secondary: 0, total: 0 };
+                    return (
+                      <li
+                        key={worker.id}
+                        className="flex flex-col bg-muted/40 px-4 py-3 rounded-lg border gap-3 transition-colors hover:bg-muted/60"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-sm">
+                            {worker.name}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeWorker(worker.id)}
+                            className="text-muted-foreground hover:text-destructive h-7 w-7"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="flex gap-2 text-[11px] font-bold tracking-wide">
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                            1st: {stats.primary}
+                          </Badge>
+                          <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
+                            2nd: {stats.secondary}
+                          </Badge>
+                          <Badge variant="outline" className="ml-auto bg-background">
+                            Total: {stats.total}
+                          </Badge>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              <form onSubmit={addWorker} className="flex gap-2">
-                <input
-                  type="text"
-                  value={newWorkerName}
-                  onChange={(e) => setNewWorkerName(e.target.value)}
-                  placeholder="New worker name"
-                  className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </form>
-            </section>
+                <form onSubmit={addWorker} className="flex gap-2">
+                  <Input
+                    value={newWorkerName}
+                    onChange={(e) => setNewWorkerName(e.target.value)}
+                    placeholder="New worker name"
+                    className="flex-1"
+                  />
+                  <Button type="submit" size="icon">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
 
-            <section className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200">
-              <h2 className="text-xl font-bold mb-4">Settings</h2>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    Start Date
-                  </label>
-                  <input
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Settings</CardTitle>
+                <CardDescription>Configure the schedule length.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Duration: {months} {months === 1 ? "Month" : "Months"} (
-                    {months * 4} weeks)
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="12"
-                    value={months}
-                    onChange={(e) => setMonths(Number(e.target.value))}
-                    className="w-full accent-blue-600"
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Schedule Duration</Label>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {months} {months === 1 ? "Month" : "Months"} ({months * 4} weeks)
+                    </span>
+                  </div>
+                  <Slider
+                    value={[months]}
+                    min={1}
+                    max={12}
+                    step={1}
+                    onValueChange={(vals) => setMonths(Array.isArray(vals) ? vals[0] : (vals as number))}
                   />
                 </div>
-              </div>
-            </section>
+              </CardContent>
+            </Card>
 
-            <section className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
-              <h3 className="text-amber-800 font-bold flex items-center gap-2 mb-2">
-                <AlertCircle className="w-5 h-5" /> Constraints Active
-              </h3>
-              <ul className="text-sm text-amber-700 space-y-2 list-disc list-inside">
-                <li>No consecutive primary shifts</li>
-                <li>Max 2 consecutive shifts total</li>
-                <li>Fair shift distribution</li>
-                <li>Respects time-off requests</li>
-              </ul>
-            </section>
+            <Card className="bg-amber-50 border-amber-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-amber-800 flex items-center gap-2 text-base">
+                  <AlertCircle className="w-5 h-5" /> Rules Active
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-amber-900 space-y-1 mt-1 list-disc list-inside">
+                  <li>No consecutive primary shifts</li>
+                  <li>Max 2 consecutive shifts total</li>
+                  <li>Fair shift distribution</li>
+                  <li>Respects time-off requests</li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Schedule View */}
-          <div className="lg:col-span-2 space-y-6">
-            <section className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200 overflow-x-auto">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <CalendarOff className="w-6 h-6 text-emerald-500" /> Generated
-                Schedule
-              </h2>
+          {/* Schedule View Panel */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-sm">
+              <CardHeader className="border-b bg-muted/20">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <CalendarOff className="w-5 h-5 text-emerald-500" />
+                  Generated Schedule
+                </CardTitle>
+                <CardDescription>
+                  Automatically balanced across {months * 4} weeks based on fair distribution parameters.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="uppercase text-xs tracking-wider">
+                      <TableHead className="w-[180px]">Date Range</TableHead>
+                      <TableHead>First On-Call</TableHead>
+                      <TableHead>Second On-Call</TableHead>
+                      <TableHead className="text-right">Time Off Manager</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {schedule.map((week) => {
+                      const weekTimeOff = timeOff.filter(
+                        (t) => t.weekIndex === week.weekIndex
+                      );
 
-              <table className="w-full text-left bg-white rounded-lg border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-neutral-200 text-neutral-500 text-sm uppercase tracking-wider">
-                    <th className="p-4 font-semibold">Date Range</th>
-                    <th className="p-4 font-semibold">Primary</th>
-                    <th className="p-4 font-semibold">Secondary</th>
-                    <th className="p-4 font-semibold">Time Off Requests</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {schedule.map((week) => {
-                    const weekTimeOff = timeOff.filter(
-                      (t) => t.weekIndex === week.weekIndex
-                    );
-
-                    return (
-                      <tr
-                        key={week.weekIndex}
-                        className="hover:bg-neutral-50 transition-colors group"
-                      >
-                        <td className="p-4">
-                          <div className="font-bold text-neutral-900 whitespace-nowrap">
-                            {getWeekDateRange(week.weekIndex, startDate)}
-                          </div>
-                          <div className="text-xs text-neutral-500 uppercase tracking-widest mt-1 font-semibold">
-                            Week {week.weekIndex + 1}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={
-                              week.primary
-                                ? "inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800"
-                                : "inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800"
-                            }
-                          >
-                            {getWorkerName(week.primary)}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={
-                              week.secondary
-                                ? "inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-100 text-indigo-800"
-                                : "inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800"
-                            }
-                          >
-                            {getWorkerName(week.secondary)}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-2">
-                            {workers.map((worker) => {
-                              const isOff = weekTimeOff.some(
-                                (t) => t.workerId === worker.id
-                              );
-                              return (
-                                <button
-                                  key={worker.id}
-                                  onClick={() =>
-                                    toggleTimeOff(worker.id, week.weekIndex)
-                                  }
-                                  className={`px-2 py-1 text-xs font-semibold rounded-md border transition-all ${
-                                    isOff
-                                      ? "bg-red-500 text-white border-red-600 shadow-sm"
-                                      : "bg-white text-neutral-500 border-neutral-200 hover:bg-neutral-100"
-                                  }`}
-                                  title={`Toggle time off for ${worker.name}`}
-                                >
-                                  {isOff ? "Off" : worker.name}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </section>
+                      return (
+                        <TableRow key={week.weekIndex} className="group">
+                          <TableCell>
+                            <div className="font-bold whitespace-nowrap">
+                              {getWeekDateRange(week.weekIndex, startDate)}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground uppercase mt-1 font-semibold tracking-widest">
+                              Week {week.weekIndex + 1}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={week.primary ? "default" : "destructive"}
+                              className={week.primary ? "bg-blue-100 text-blue-800 hover:bg-blue-200" : ""}
+                            >
+                              {getWorkerName(week.primary)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={week.secondary ? "secondary" : "destructive"}
+                              className={week.secondary ? "bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border-indigo-200" : ""}
+                            >
+                              {getWorkerName(week.secondary)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex flex-wrap gap-1.5 justify-end">
+                              {workers.map((worker) => {
+                                const isOff = weekTimeOff.some(
+                                  (t) => t.workerId === worker.id
+                                );
+                                return (
+                                  <Button
+                                    key={worker.id}
+                                    variant={isOff ? "destructive" : "outline"}
+                                    size="sm"
+                                    onClick={() => toggleTimeOff(worker.id, week.weekIndex)}
+                                    className={`h-7 px-2 text-[11px] ${
+                                      !isOff ? "text-muted-foreground hover:bg-muted" : "shadow-sm"
+                                    }`}
+                                  >
+                                    {isOff ? "Off" : worker.name}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
