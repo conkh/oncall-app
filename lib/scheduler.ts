@@ -15,13 +15,19 @@ export interface WeeklySchedule {
   supervisor: string | null;
 }
 
+export interface ScheduleResult {
+  schedule: WeeklySchedule[];
+  summaries: Record<string, { first: number; second: number }>;
+  supervisorSummaries: Record<string, number>;
+}
+
 export function generateSchedule(
   workers: Worker[],
   supervisors: Worker[],
-  numOfMonths: number,
+  numOfWeeks: number,
   timeOff: TimeOffRequest[]
-): WeeklySchedule[] {
-  const weeks = numOfMonths * 4;
+): ScheduleResult {
+  const weeks = numOfWeeks;
   const schedule: WeeklySchedule[] = [];
 
   const primaryCount: Record<string, number> = {};
@@ -85,10 +91,12 @@ export function generateSchedule(
     );
 
     secondaryCandidates.sort((a, b) => {
-      if (totalCount[a.id] !== totalCount[b.id]) {
-        return totalCount[a.id] - totalCount[b.id];
+      if (primaryCount[a.id] !== primaryCount[b.id]) {
+        // Prefer picking someone who has MORE primary assignments for secondary,
+        // so that those with FEWER primary assignments are kept available for future primary slots.
+        return primaryCount[b.id] - primaryCount[a.id];
       }
-      return primaryCount[a.id] - primaryCount[b.id];
+      return totalCount[a.id] - totalCount[b.id];
     });
 
     const secondary =
@@ -120,7 +128,20 @@ export function generateSchedule(
     });
   }
 
-  return schedule;
+  const summaries: Record<string, { first: number; second: number }> = {};
+  for (const w of workers) {
+    summaries[w.id] = {
+      first: primaryCount[w.id] || 0,
+      second: (totalCount[w.id] || 0) - (primaryCount[w.id] || 0),
+    };
+  }
+
+  const supervisorSummaries: Record<string, number> = {};
+  for (const s of supervisors) {
+    supervisorSummaries[s.id] = supervisorCount[s.id] || 0;
+  }
+
+  return { schedule, summaries, supervisorSummaries };
 }
 
 export function getMonthName(weekIndex: number) {

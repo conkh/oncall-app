@@ -19,6 +19,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 
@@ -47,12 +53,13 @@ export default function Home() {
     { id: "s3", name: "Alex Carter" },
   ]);
 
-  const [months, setMonths] = useState<number>(3);
+  const [weeks, setWeeks] = useState<number>(12);
+  const [startDate, setStartDate] = useState<string>("2024-07-01");
   const [timeOff, setTimeOff] = useState<TimeOffRequest[]>([]);
 
-  const schedule = useMemo(
-    () => generateSchedule(workers, supervisors, months, timeOff),
-    [workers, supervisors, months, timeOff]
+  const { schedule, summaries, supervisorSummaries } = useMemo(
+    () => generateSchedule(workers, supervisors, weeks, timeOff),
+    [workers, supervisors, weeks, timeOff, startDate]
   );
 
   const toggleTimeOff = (workerId: string, weekIndex: number) => {
@@ -70,12 +77,13 @@ export default function Home() {
   const getSupervisor = (id: string | null) => supervisors.find((s) => s.id === id);
 
   const getWeekDateRange = (weekIndex: number) => {
-    const start = new Date(2024, 6, 1);
+    const start = new Date(startDate);
     start.setDate(start.getDate() + weekIndex * 7);
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
     return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.getDate()}`;
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
@@ -108,21 +116,7 @@ export default function Home() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar Nav Rail */}
-        <div className="w-20 bg-background border-r hidden md:flex flex-col items-center py-6 gap-6 text-muted-foreground shrink-0">
-          <Button variant="ghost" className="flex flex-col items-center h-auto py-2 gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-            <Users className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Team</span>
-          </Button>
-          <Button variant="ghost" className="flex flex-col items-center h-auto py-2 gap-1 hover:text-foreground">
-            <Shield className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Supervisors</span>
-          </Button>
-          <Button variant="ghost" className="flex flex-col items-center h-auto py-2 gap-1 hover:text-foreground">
-            <Settings className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Settings</span>
-          </Button>
-        </div>
+
 
         {/* Content Area */}
         <div className="flex-1 p-6 md:p-8 flex flex-col lg:flex-row items-start gap-8 overflow-auto">
@@ -133,22 +127,63 @@ export default function Home() {
                 <CardTitle className="text-lg">Team Members</CardTitle>
                 <CardDescription>{workers.length} members</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Button variant="outline" className="w-full">Manage Members</Button>
+              <CardContent className="space-y-6">
                 <div>
-                  <h3 className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wider">Active/On-Call</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wider">Current On-Call</h3>
                   <div className="space-y-4">
-                    {workers.slice(0, 3).map((w, i) => (
-                      <div key={w.id} className="flex items-center gap-3">
-                        <Avatar name={w.name} />
+                    {[
+                      { person: getWorker(schedule[0]?.primary), role: "Primary On-Call", color: "bg-blue-100 text-blue-800 hover:bg-blue-100" },
+                      { person: getWorker(schedule[0]?.secondary), role: "Backup On-Call", color: "bg-amber-100 text-amber-800 hover:bg-amber-100" }
+                    ].map((entry, i) => entry.person && (
+                      <div key={entry.person.id + '-' + i} className="flex items-center gap-3">
+                        <Avatar name={entry.person.name} />
                         <div className="flex flex-col items-start">
-                          <span className="text-sm font-semibold">{w.name}</span>
-                          <Badge variant="secondary" className={`mt-1 text-[10px] py-0 px-2 leading-tight ${i === 1 ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'}`}>
-                            {i === 1 ? 'Away/Amber - Member' : 'Active/Green - Team'}
+                          <span className="text-sm font-semibold">{entry.person.name}</span>
+                          <Badge variant="secondary" className={`mt-1 text-[10px] py-0 px-2 leading-tight ${entry.color}`}>
+                            {entry.role}
                           </Badge>
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider uppercase">All Members</h3>
+                  <div className="space-y-3">
+                    {workers.map((w) => (
+                      <div key={w.id} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={w.name} />
+                          <div className="flex flex-col gap-1 mt-1">
+                            <span className="text-sm font-medium leading-none">{w.name}</span>
+                            <div className="flex gap-1">
+                              <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 text-[9px] font-bold py-0 px-1 rounded-sm">1st: {summaries[w.id]?.first || 0}</Badge>
+                              <Badge variant="secondary" className="bg-amber-50 text-amber-700 hover:bg-amber-100 text-[9px] font-bold py-0 px-1 rounded-sm">2nd: {summaries[w.id]?.second || 0}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive shrink-0"
+                          onClick={() => setWorkers(workers.filter(worker => worker.id !== w.id))}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                    <Input 
+                      placeholder="Add new member... (Press Enter)" 
+                      className="h-8 text-xs bg-muted/30"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                          setWorkers([...workers, { id: Date.now().toString(), name: e.currentTarget.value.trim() }]);
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -161,11 +196,11 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider">Current Supervisors</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider">Current Supervisor</h3>
                   <div className="flex items-center gap-3">
-                    <Avatar name={supervisors[0]?.name || "Unassigned"} />
+                    <Avatar name={getSupervisor(schedule[0]?.supervisor)?.name || "Unassigned"} />
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold">{supervisors[0]?.name || "None"}</span>
+                      <span className="text-sm font-semibold">{getSupervisor(schedule[0]?.supervisor)?.name || "None"}</span>
                       <Badge variant="secondary" className="mt-1 text-[10px] py-0 px-2 leading-tight bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
                         On-Call/Indigo
                       </Badge>
@@ -174,11 +209,11 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider">Backup Supervisors</h3>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider">Up Next (Week 2)</h3>
                   <div className="flex items-center gap-3 mb-6">
-                    <Avatar name={supervisors[1]?.name || "Unassigned"} />
+                    <Avatar name={getSupervisor(schedule[1]?.supervisor)?.name || "Unassigned"} />
                     <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold">{supervisors[1]?.name || "None"}</span>
+                      <span className="text-sm font-semibold">{getSupervisor(schedule[1]?.supervisor)?.name || "None"}</span>
                       <Badge variant="secondary" className="mt-1 text-[10px] py-0 px-2 leading-tight bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
                         Active/Green
                       </Badge>
@@ -186,7 +221,44 @@ export default function Home() {
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full">Manage Supervisors</Button>
+                <div>
+                  <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wider uppercase">All Supervisors</h3>
+                  <div className="space-y-3">
+                    {supervisors.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={s.name} />
+                          <div className="flex flex-col gap-1 mt-1">
+                            <span className="text-sm font-medium leading-none">{s.name}</span>
+                            <div className="flex gap-1">
+                              <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-[9px] font-bold py-0 px-1 rounded-sm">Assigned: {supervisorSummaries?.[s.id] || 0}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                          onClick={() => setSupervisors(supervisors.filter(sup => sup.id !== s.id))}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                    <Input 
+                      placeholder="Add new supervisor... (Press Enter)" 
+                      className="h-8 text-xs bg-muted/30"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                          setSupervisors([...supervisors, { id: 's' + Date.now().toString(), name: e.currentTarget.value.trim() }]);
+                          e.currentTarget.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -202,12 +274,14 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+
+
           </div>
 
           {/* Main Table Area */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <h1 className="text-2xl font-bold">Generated Schedule - July 2024</h1>
+              <h1 className="text-2xl font-bold">Generated Schedule</h1>
               <div className="flex gap-3">
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">New Schedule</Button>
                 <Button variant="outline"><Download className="w-4 h-4 mr-2" /> Export</Button>
@@ -215,14 +289,39 @@ export default function Home() {
             </div>
 
             <div className="mb-4 flex flex-col gap-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
-              <div className="flex gap-3">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters & Config</span>
+              <div className="flex gap-3 items-center">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-[140px] shadow-sm h-8 text-sm"
+                />
                 <Button variant="outline" size="sm" className="h-8 shadow-sm">
                   Team <ChevronDown className="w-3 h-3 ml-2" />
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 shadow-sm">
-                  Period <ChevronDown className="w-3 h-3 ml-2" />
-                </Button>
+                <div className="flex flex-row items-center border border-input bg-background shadow-sm rounded-md h-8 focus-within:ring-1 focus-within:ring-ring">
+                  <Input 
+                    type="number" 
+                    value={weeks || ""}
+                    min={1}
+                    onChange={(e) => setWeeks(parseInt(e.target.value) || 0)}
+                    onBlur={() => setWeeks(Math.max(1, weeks))}
+                    className="w-14 h-full border-0 focus-visible:ring-0 shadow-none text-center px-1 text-sm bg-transparent !appearance-none"
+                  />
+                  <span className="text-sm font-medium pr-2 text-muted-foreground select-none">wks</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="px-2 border-l border-input hover:bg-accent hover:text-accent-foreground h-full rounded-r-md transition-colors flex items-center justify-center outline-none cursor-pointer">
+                      <ChevronDown className="w-3 h-3" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setWeeks(4)}>4 Weeks (~1 Month)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setWeeks(12)}>12 Weeks (~3 Months)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setWeeks(24)}>24 Weeks (~6 Months)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setWeeks(52)}>52 Weeks (~1 Year)</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
 
@@ -230,6 +329,7 @@ export default function Home() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
+                    <TableHead className="w-[50px] font-bold">#</TableHead>
                     <TableHead className="w-[180px] font-bold">
                       <div className="flex items-center gap-2">Date Range <ArrowUpDown className="w-3 h-3" /></div>
                     </TableHead>
@@ -242,19 +342,16 @@ export default function Home() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {schedule.slice(0, 4).map((week, idx) => {
+                  {schedule.map((week, idx) => {
                     const pWorker = getWorker(week.primary);
                     const sWorker = getWorker(week.secondary);
                     const supervisor = getSupervisor(week.supervisor);
 
-                    let bg = "";
-                    if (idx === 0) bg = "bg-indigo-50/40 hover:bg-indigo-50/60";
-                    if (idx === 1) bg = "bg-slate-50/50 hover:bg-slate-50";
-                    if (idx === 2) bg = "bg-amber-50/40 hover:bg-amber-50/60";
-                    if (idx === 3) bg = "bg-slate-50/50 hover:bg-slate-50";
+                    const bg = idx % 2 === 0 ? "bg-slate-50/50 hover:bg-slate-50" : "hover:bg-slate-50/50";
 
                     return (
                       <TableRow key={idx} className={bg}>
+                        <TableCell className="font-medium text-muted-foreground">{idx + 1}</TableCell>
                         <TableCell className="font-medium">
                           {getWeekDateRange(idx)}
                         </TableCell>
