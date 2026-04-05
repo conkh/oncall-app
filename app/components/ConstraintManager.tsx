@@ -71,9 +71,11 @@ export function ConstraintManager({
             <Label>Type</Label>
             <Select
               value={selectedType}
-              onValueChange={(value: 'worker' | 'supervisor') => {
-                setSelectedType(value);
-                setSelectedId('');
+              onValueChange={(value: 'worker' | 'supervisor' | null) => {
+                if (value) {
+                  setSelectedType(value);
+                  setSelectedId('');
+                }
               }}
             >
               <SelectTrigger>
@@ -94,7 +96,7 @@ export function ConstraintManager({
 
           <div className="space-y-2">
             <Label>Person</Label>
-            <Select value={selectedId} onValueChange={setSelectedId}>
+            <Select value={selectedId} onValueChange={(value: string | null) => value && setSelectedId(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select person..." />
               </SelectTrigger>
