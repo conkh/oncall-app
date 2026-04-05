@@ -1,0 +1,31 @@
+**INPUT DATA:**
+- Workers: [LIST_OF_WORKERS]
+- Weeks to Schedule: [NUMBER_OF_WEEKS] or [LIST_OF_WEEKS]
+- Approved Time-Offs: [LIST_OF_APPROVED_TIME_OFFS]
+- Pre-requested Assignments: [LIST_OF_PRE_ASSIGNMENTS]
+
+**DEFINITIONS:**
+- Each week requires exactly one "First On-Call" and exactly one "Second On-Call".
+- Total On-Call = The sum of a worker's First On-Call and Second On-Call shifts.
+
+**RULES & CONSTRAINTS:**
+- Constraint 1: A worker CANNOT be assigned the "First On-Call" role for 2 consecutive weeks.
+- Constraint 2: A worker CANNOT be assigned ANY on-call role (First or Second) for 3 consecutive weeks.
+
+**EXECUTION STEPS:**
+You must process the schedule strictly in the following order:
+
+**Step 1: Process Time-Off and Pre-requested Assignments (Priority Override)**
+- Block out all workers who have approved time-off during specific weeks. They cannot be scheduled for those weeks.
+- Place all "Pre-requested Assignments" into the schedule first. 
+- *Note: Pre-requested assignments and take-off are absolute priorities and bypass Constraints 1 and 2 if necessary.*
+
+**Step 2: Balance "First On-Call"**
+- Fill in the remaining "First On-Call" slots for the entire calendar.
+- Distribute these shifts as evenly as possible among all available workers to ensure fairness.
+- You MUST strictly enforce Constraint 1 and Constraint 2 during this step.
+
+**Step 3: Balance Total On-Call**
+- Fill in the remaining "Second On-Call" slots for the entire calendar.
+- Balance the overall on-call workload (First + Second) as evenly as possible across all workers.
+- You MUST strictly enforce Constraint 2 during this step. Ensure no worker is scheduled for any combination of roles for 3 weeks in a row.
