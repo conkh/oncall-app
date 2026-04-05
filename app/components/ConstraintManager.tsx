@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CalendarX2, Users, Shield } from 'lucide-react';
+import { CalendarX2, Users, Shield, Trash2 } from 'lucide-react';
 
 interface ConstraintManagerProps {
   workers: Worker[];
@@ -195,6 +195,77 @@ export function ConstraintManager({
             Add {selectedType}s first to set time-off
           </p>
         )}
+
+        {/* All Time-Off Summary */}
+        {(() => {
+          const allTimeOff = [
+            ...workers.flatMap(w => w.unavailableWeeks.map(week => ({ 
+              personId: w.id, 
+              personName: w.name, 
+              week, 
+              type: 'worker' as const 
+            }))),
+            ...supervisors.flatMap(s => s.unavailableWeeks.map(week => ({ 
+              personId: s.id, 
+              personName: s.name, 
+              week, 
+              type: 'supervisor' as const 
+            }))),
+          ].sort((a, b) => a.week - b.week || a.personName.localeCompare(b.personName));
+
+          if (allTimeOff.length === 0) return null;
+
+          return (
+            <div className="pt-4 border-t space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">All Time-Off Entries</h4>
+                <Badge variant="secondary">{allTimeOff.length} total</Badge>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {allTimeOff.map((entry, index) => (
+                  <div
+                    key={`${entry.personId}-${entry.week}-${index}`}
+                    className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{entry.personName}</span>
+                      <Badge variant="outline">Week {entry.week}</Badge>
+                      <Badge 
+                        variant={entry.type === 'worker' ? 'secondary' : 'default'}
+                        className={entry.type === 'supervisor' ? 'bg-purple-500' : ''}
+                      >
+                        {entry.type === 'worker' ? 'Worker' : 'Supervisor'}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const person = entry.type === 'worker' 
+                          ? workers.find(w => w.id === entry.personId)
+                          : supervisors.find(s => s.id === entry.personId);
+                        if (person) {
+                          const updatedPerson = { 
+                            ...person, 
+                            unavailableWeeks: person.unavailableWeeks.filter(w => w !== entry.week) 
+                          };
+                          if (entry.type === 'worker') {
+                            onUpdateWorker(updatedPerson as Worker);
+                          } else {
+                            onUpdateSupervisor(updatedPerson as Supervisor);
+                          }
+                        }
+                      }}
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
