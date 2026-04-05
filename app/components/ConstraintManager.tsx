@@ -95,10 +95,12 @@ export function ConstraintManager({
           </div>
 
           <div className="space-y-2">
-            <Label>Person</Label>
+            <Label>{selectedType === 'worker' ? 'Worker' : 'Supervisor'}</Label>
             <Select value={selectedId} onValueChange={(value: string | null) => value && setSelectedId(value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select person..." />
+                <SelectValue placeholder={`Select ${selectedType}...`}>
+                  {selectedPerson?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {people.length === 0 ? (
@@ -133,18 +135,37 @@ export function ConstraintManager({
               </span>
             </div>
             
+            {/* Warning for pre-assigned weeks */}
+            {(() => {
+              const preAssignedWeeks = selectedType === 'worker'
+                ? (selectedPerson as Worker).preAssignments.map(pa => pa.weekNumber)
+                : (selectedPerson as Supervisor).preAssignments;
+              return preAssignedWeeks.length > 0 ? (
+                <div className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                  <span className="font-medium">Note:</span> Weeks with pre-assignments ({preAssignedWeeks.map(w => `W${w}`).join(', ')}) cannot be marked as time-off.
+                </div>
+              ) : null;
+            })()}
+            
             <div className="grid grid-cols-8 gap-2">
               {Array.from({ length: durationWeeks }, (_, i) => i + 1).map((weekNum) => {
                 const isUnavailable = selectedPerson.unavailableWeeks.includes(weekNum);
+                // Check if worker has pre-assignment for this week
+                const hasPreAssignment = selectedType === 'worker' 
+                  ? (selectedPerson as Worker).preAssignments.some(pa => pa.weekNumber === weekNum)
+                  : (selectedPerson as Supervisor).preAssignments.includes(weekNum);
                 return (
                   <Button
                     key={weekNum}
                     variant={isUnavailable ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleToggleWeek(weekNum)}
-                    className={`h-10 ${isUnavailable ? 'bg-destructive hover:bg-destructive/90' : ''}`}
+                    disabled={hasPreAssignment}
+                    title={hasPreAssignment ? 'Cannot set time-off: person has pre-assignment for this week' : ''}
+                    className={`h-10 relative ${isUnavailable ? 'bg-destructive hover:bg-destructive/90' : ''} ${hasPreAssignment ? 'opacity-50 cursor-not-allowed border-orange-400' : ''}`}
                   >
                     W{weekNum}
+                    {hasPreAssignment && <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />}
                   </Button>
                 );
               })}

@@ -65,7 +65,9 @@ export function PreAssignmentManager({
             <Label>Worker</Label>
             <Select value={selectedWorkerId} onValueChange={(value) => value && setSelectedWorkerId(value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select worker..." />
+                <SelectValue placeholder="Select worker...">
+                  {selectedWorker?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {workers.length === 0 ? (
@@ -102,14 +104,17 @@ export function PreAssignmentManager({
                   const alreadyAssigned = selectedWorker?.preAssignments.some(
                     pa => pa.weekNumber === weekNum
                   );
+                  // Check if this week is marked as time-off (unavailable)
+                  const isTimeOff = selectedWorker?.unavailableWeeks.includes(weekNum);
                   return (
                     <SelectItem 
                       key={weekNum} 
                       value={weekNum.toString()}
-                      disabled={alreadyAssigned}
+                      disabled={alreadyAssigned || isTimeOff}
                     >
                       Week {weekNum}
                       {alreadyAssigned && ' (already assigned)'}
+                      {isTimeOff && ' (time-off)'}
                     </SelectItem>
                   );
                 })}
