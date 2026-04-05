@@ -71,10 +71,12 @@ export function SupervisorPreAssignmentManager({
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Supervisor</Label>
+            <Label>Select Supervisor</Label>
             <Select value={selectedSupervisorId} onValueChange={(value) => value && setSelectedSupervisorId(value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select supervisor..." />
+                <SelectValue placeholder="Select supervisor...">
+                  {selectedSupervisor?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {supervisors.length === 0 ? (
