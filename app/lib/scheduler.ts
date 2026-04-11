@@ -12,10 +12,10 @@ interface SupervisorStats {
 }
 
 // Constraint checking functions
-function wasFirstOnCallLastWeek(schedule: WeekSchedule[], currentWeek: number, workerId: string): boolean {
+function hadAnyRoleLastWeek(schedule: WeekSchedule[], currentWeek: number, workerId: string): boolean {
   if (currentWeek <= 1) return false;
   const lastWeek = schedule.find(s => s.weekNumber === currentWeek - 1);
-  return lastWeek?.firstOnCall?.id === workerId;
+  return lastWeek?.firstOnCall?.id === workerId || lastWeek?.secondOnCall?.id === workerId;
 }
 
 function hasAnyRoleForPastTwoWeeks(schedule: WeekSchedule[], currentWeek: number, workerId: string): boolean {
@@ -121,9 +121,9 @@ export function generateSchedule(
       return true;
     });
 
-    // Apply Constraint 1: Cannot be First On-Call for 2 consecutive weeks
+    // Apply Constraint 1: Cannot have ANY role for 2 consecutive weeks
     availableWorkers = availableWorkers.filter(ws => 
-      !wasFirstOnCallLastWeek(schedule, weekNum, ws.worker.id)
+      !hadAnyRoleLastWeek(schedule, weekNum, ws.worker.id)
     );
 
     // Apply Constraint 2: Cannot have ANY role for 3 consecutive weeks
@@ -168,6 +168,11 @@ export function generateSchedule(
       if (weekSchedule.firstOnCall?.id === ws.worker.id) return false;
       return true;
     });
+
+    // Apply Constraint 1: Cannot have ANY role for 2 consecutive weeks
+    availableWorkers = availableWorkers.filter(ws => 
+      !hadAnyRoleLastWeek(schedule, weekNum, ws.worker.id)
+    );
 
     // Apply Constraint 2: Cannot have ANY role for 3 consecutive weeks
     availableWorkers = availableWorkers.filter(ws => 
